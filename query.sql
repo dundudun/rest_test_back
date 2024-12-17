@@ -1,4 +1,4 @@
---name: CreateOrganization :one
+-- name: CreateOrganization :one
 insert into organization (
     name, 
     plastic_limit, 
@@ -12,15 +12,15 @@ insert into organization (
 ) 
 returning *;
 
---name: ListOrganizations :many
+-- name: ListOrganizations :many
 select * from organization 
 order by name;
 
---name: GetOrganization :one
+-- name: GetOrganization :one
 select * from organization 
 where id = $1 limit 1;
 
---name: UpdateOrganization :one  ????
+-- name: UpdateOrganization :one
 update organization set
     name = $2, 
     plastic_limit = $3, 
@@ -29,10 +29,10 @@ update organization set
     produced_plastic = $6,
     produced_glass = $7,
     produced_biowaste = $8
-where id  = $1
+where id = $1
 returning *;
 
---name: PartlyUpdateOrganization :one ????
+-- name: PartlyUpdateOrganization :one
 update organization set
     name = $2, 
     plastic_limit = $3, 
@@ -41,15 +41,15 @@ update organization set
     produced_plastic = $6,
     produced_glass = $7,
     produced_biowaste = $8
-where id  = $1
+where id = $1
 returning *;
 
---name:DeleteOrganization :exec
+-- name: DeleteOrganization :exec
 delete from organization
-where id  = $1;
+where id = $1;
 
 
---name: CreateWasteStorage :one
+-- name: CreateWasteStorage :one
 insert into waste_storage (
     name, 
     plastic_limit, 
@@ -63,15 +63,27 @@ insert into waste_storage (
 ) 
 returning *;
 
---name: ListWasteStorage :many
+-- name: ListWasteStorage :many
 select * from waste_storage 
 order by name;
 
---name: GetWasteStorage :one
+-- name: GetWasteStorage :one
 select * from waste_storage 
 where id = $1 limit 1;
 
---name: UpdateWasteStorage :one  ????
+-- name: UpdateWasteStorage :one
+update waste_storage set
+    name = $2, 
+    plastic_limit = $3, 
+    glass_limit = $4, 
+    biowaste_limit = $5,
+    stored_plastic = $6,
+    stored_glass = $7,
+    stored_biowaste = $8
+where id = $1
+returning *;
+
+-- name: PartlyUpdateWasteStorage :one
 update waste_storage set
     name = $2, 
     plastic_limit = $3, 
@@ -83,18 +95,6 @@ update waste_storage set
 where id  = $1
 returning *;
 
---name: PartlyUpdateWasteStorage :one ????
-update waste_storage set
-    name = $2, 
-    plastic_limit = $3, 
-    glass_limit = $4, 
-    biowaste_limit = $5,
-    stored_plastic = $6,
-    stored_glass = $7,
-    stored_biowaste = $8
-where id  = $1
-returning *;
-
---name:DeleteWasteStorage :exec
+-- name: DeleteWasteStorage :exec
 delete from waste_storage
-where id  = $1;
+where id = $1;
