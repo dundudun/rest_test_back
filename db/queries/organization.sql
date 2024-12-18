@@ -1,4 +1,4 @@
--- name: CreateOrganization :one
+-- name: CreateOrganization :exec
 insert into organization (
     name, 
     plastic_limit, 
@@ -9,8 +9,7 @@ insert into organization (
     produced_biowaste
 ) values (
     $1, $2, $3, $4, $5, $6, $7
-) 
-returning *;
+);
 
 -- name: ListOrganizations :many
 select * from organization 
@@ -20,7 +19,7 @@ order by name;
 select * from organization 
 where id = $1 limit 1;
 
--- name: UpdateOrganization :one
+-- name: UpdateOrganization :exec
 update organization set
     name = $2, 
     plastic_limit = $3, 
@@ -29,10 +28,9 @@ update organization set
     produced_plastic = $6,
     produced_glass = $7,
     produced_biowaste = $8
-where id = $1
-returning *;
+where id = $1;
 
--- name: PartlyUpdateOrganization :one
+-- name: PartlyUpdateOrganization :exec
 update organization set
     name = coalesce($2, name),
     plastic_limit = coalesce($3, plastic_limit),
@@ -41,8 +39,7 @@ update organization set
     produced_plastic = coalesce($6, produced_plastic),
     produced_glass = coalesce($7, produced_glass),
     produced_biowaste = coalesce($8, produced_biowaste)
-where id = $1
-returning *;
+where id = $1;
 
 -- name: DeleteOrganization :exec
 delete from organization
