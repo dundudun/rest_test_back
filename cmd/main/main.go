@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/joho/godotenv"
 )
 
@@ -64,18 +65,104 @@ func (h *Handler) getOrganization(c *gin.Context) {
 	c.JSON(http.StatusOK, org)
 }
 
+type PartlyUpdateOrganizationRequest struct {
+	Name             *string      `json:"name"`
+	PlasticLimit     *pgtype.Int4 `json:"plastic_limit"`
+	GlassLimit       *pgtype.Int4 `json:"glass_limit"`
+	BiowasteLimit    *pgtype.Int4 `json:"biowaste_limit"`
+	ProducedPlastic  *pgtype.Int4 `json:"produced_plastic"`
+	ProducedGlass    *pgtype.Int4 `json:"produced_glass"`
+	ProducedBiowaste *pgtype.Int4 `json:"produced_biowaste"`
+}
+
+func (h *Handler) partlyChangeOrganization(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid organization ID"})
+		return
+	}
+
+	var req PartlyUpdateOrganizationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	org, err := h.queries.PartlyUpdateOrganization(
+		c,
+		sqlc.PartlyUpdateOrganizationParams{
+			ID:               id,
+			Name:             *req.Name,
+			PlasticLimit:     *req.PlasticLimit,
+			GlassLimit:       *req.GlassLimit,
+			BiowasteLimit:    *req.BiowasteLimit,
+			ProducedPlastic:  *req.ProducedPlastic,
+			ProducedGlass:    *req.ProducedGlass,
+			ProducedBiowaste: *req.ProducedBiowaste,
+		},
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update organization"})
+		return
+	}
+
+	c.JSON(http.StatusOK, org)
+}
+
+func (h *Handler) changeOrganization(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid organization ID"})
+		return
+	}
+
+	var req struct {
+		Name             string      `json:"name" binding:"required"`
+		PlasticLimit     pgtype.Int4 `json:"plastic_limit" binding:"required"`
+		GlassLimit       pgtype.Int4 `json:"glass_limit" binding:"required"`
+		BiowasteLimit    pgtype.Int4 `json:"biowaste_limit" binding:"required"`
+		ProducedPlastic  pgtype.Int4 `json:"produced_plastic" binding:"required"`
+		ProducedGlass    pgtype.Int4 `json:"produced_glass" binding:"required"`
+		ProducedBiowaste pgtype.Int4 `json:"produced_biowaste" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	org, err := h.queries.UpdateOrganization(
+		c,
+		sqlc.UpdateOrganizationParams{
+			ID:               id,
+			Name:             req.Name,
+			PlasticLimit:     req.PlasticLimit,
+			GlassLimit:       req.GlassLimit,
+			BiowasteLimit:    req.BiowasteLimit,
+			ProducedPlastic:  req.ProducedPlastic,
+			ProducedGlass:    req.ProducedGlass,
+			ProducedBiowaste: req.ProducedBiowaste,
+		},
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update organization"})
+		return
+	}
+
+	c.JSON(http.StatusOK, org)
+}
+
 func main() {
 	defer pgxConn.Close(context.Background())
 
-	handler := Handler{queries}
+	h := Handler{queries}
 	r := server.Group("/api")
 
 	org := r.Group("/organizations")
 	// org.POST("", createOrganization)
 	// org.GET("", listOrganizations)
-	org.GET("/:id", handler.getOrganization)
-	// org.PUT("/:id", changeOrganization)
-	// org.PATCH("/:id", partlyChangeOrganization)
+	org.GET("/:id", h.getOrganization)
+	org.PUT("/:id", h.changeOrganization)
+	org.PATCH("/:id", h.partlyChangeOrganization)
 	// org.DELETE("/:id", deleteOrganization)
 
 	// stor := r.Group("/waste_storages")

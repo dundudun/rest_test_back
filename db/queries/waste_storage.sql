@@ -34,13 +34,13 @@ returning *;
 
 -- name: PartlyUpdateWasteStorage :one
 update waste_storage set
-    name = $2, 
-    plastic_limit = $3, 
-    glass_limit = $4, 
-    biowaste_limit = $5,
-    stored_plastic = $6,
-    stored_glass = $7,
-    stored_biowaste = $8
+    name = coalesce($2, name),
+    plastic_limit = coalesce($3, plastic_limit),
+    glass_limit = coalesce($4, glass_limit),
+    biowaste_limit = coalesce($5, biowaste_limit),
+    stored_plastic = coalesce($6, stored_plastic),
+    stored_glass = coalesce($7, stored_glass),
+    stored_biowaste = coalesce($8, stored_biowaste)
 where id  = $1
 returning *;
 
