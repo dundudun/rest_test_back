@@ -30,7 +30,7 @@ update organization set
     produced_biowaste = $8
 where id = $1;
 
--- name: PartlyUpdateOrganization :exec
+-- name: PartlyUpdateOrganization :one
 update organization set
     name = coalesce($2, name),
     plastic_limit = coalesce($3, plastic_limit),
@@ -39,7 +39,8 @@ update organization set
     produced_plastic = coalesce($6, produced_plastic),
     produced_glass = coalesce($7, produced_glass),
     produced_biowaste = coalesce($8, produced_biowaste)
-where id = $1;
+where id = $1
+returning *;
 
 -- name: DeleteOrganization :exec
 delete from organization

@@ -1,4 +1,4 @@
-FROM go:1.23.3
+FROM go:1.23.4-alpine3.21
 
 WORKDIR /usr/src/app
 

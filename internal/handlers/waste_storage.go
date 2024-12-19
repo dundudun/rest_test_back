@@ -96,7 +96,7 @@ func (h *Handler) PartlyChangeWasteStorage(c *gin.Context) {
 		StoredGlass:    *req.StoredGlass,
 		StoredBiowaste: *req.StoredBiowaste,
 	}
-	if err := h.Queries.PartlyUpdateWasteStorage(h.Ctx, params); err != nil {
+	if _, err := h.Queries.PartlyUpdateWasteStorage(h.Ctx, params); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update waste storage"})
 		return
 	}

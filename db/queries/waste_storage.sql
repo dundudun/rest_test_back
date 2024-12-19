@@ -30,7 +30,7 @@ update waste_storage set
     stored_biowaste = $8
 where id = $1;
 
--- name: PartlyUpdateWasteStorage :exec
+-- name: PartlyUpdateWasteStorage :one
 update waste_storage set
     name = coalesce($2, name),
     plastic_limit = coalesce($3, plastic_limit),
@@ -39,7 +39,8 @@ update waste_storage set
     stored_plastic = coalesce($6, stored_plastic),
     stored_glass = coalesce($7, stored_glass),
     stored_biowaste = coalesce($8, stored_biowaste)
-where id  = $1;
+where id  = $1
+returning *;
 
 -- name: DeleteWasteStorage :exec
 delete from waste_storage
