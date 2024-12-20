@@ -7,22 +7,19 @@ import (
 	"os"
 
 	"github.com/dundudun/rest_test_back/db/sqlc"
-	h "github.com/dundudun/rest_test_back/internal/handlers"
+	"github.com/dundudun/rest_test_back/internal/handlers"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 )
 
-var (
-	server  *gin.Engine
-	queries *sqlc.Queries
-	pgxConn *pgx.Conn
-	ctx     context.Context
-)
+var server *gin.Engine
+var h = handlers.Handler{}
 
 func init() {
-	if err := godotenv.Load(".env"); err != nil {
+	err := godotenv.Load(".env")
+	if err != nil {
 		log.Fatalf("Unable to load .env file: %v\n", err)
 	}
 
@@ -34,20 +31,19 @@ func init() {
 		os.Getenv("POSTGRES_DB"),
 	)
 
-	ctx = context.Background()
-	pgxConn, err := pgx.Connect(ctx, DATABASE_URL)
+	h.Ctx = context.Background()
+	h.Db, err = pgx.Connect(h.Ctx, DATABASE_URL)
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v\n", err)
 	}
 
-	queries = sqlc.New(pgxConn)
+	h.Queries = sqlc.New(h.Db)
 	server = gin.Default()
 }
 
 func main() {
-	defer pgxConn.Close(context.Background())
+	defer h.Db.Close(context.Background())
 
-	h := h.Handler{Queries: queries, Ctx: ctx}
 	r := server.Group("/api")
 
 	org := r.Group("/organizations")

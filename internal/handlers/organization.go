@@ -157,13 +157,21 @@ func (h *Handler) DeleteOrganization(c *gin.Context) {
 }
 
 func (h *Handler) ProduceWaste(c *gin.Context) {
+	tx, err := h.Db.Begin(h.Ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failure to start transaction:\n%v", err)})
+		return
+	}
+	defer tx.Rollback(h.Ctx)
+	qtx := h.Queries.WithTx(tx)
+
 	overProduce := int32(0)
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid organization ID:\n%v", err)})
 		return
 	}
-	org, err := h.Queries.GetOrganization(h.Ctx, id)
+	org, err := qtx.GetOrganization(h.Ctx, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failure to get organization from db:\n%v", err)})
 		return
@@ -211,7 +219,7 @@ func (h *Handler) ProduceWaste(c *gin.Context) {
 	layer := 1
 	// 1st layer (one next to Organization)
 	fmt.Printf("going to fetch from Organization: %d\n", id)
-	fetched, err := h.Queries.FromOrgPlasticStors(h.Ctx, pgtype.Int8{Int64: id, Valid: true})
+	fetched, err := qtx.FromOrgPlasticStors(h.Ctx, pgtype.Int8{Int64: id, Valid: true})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failure to get waste storages for organization:\n%v", err)})
 		return
@@ -261,7 +269,7 @@ func (h *Handler) ProduceWaste(c *gin.Context) {
 			ID:            wasteStorages[idClosest].ID,
 			StoredPlastic: pgtype.Int4{Int32: newStoredWaste, Valid: true},
 		}
-		updatedWasteStorage, err := h.Queries.PartlyUpdateWasteStorage(h.Ctx, params)
+		updatedWasteStorage, err := qtx.PartlyUpdateWasteStorage(h.Ctx, params)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to update waste storage's value of stored_plastic:\n%v", err)})
 			return
@@ -291,7 +299,7 @@ func (h *Handler) ProduceWaste(c *gin.Context) {
 					continue
 				}
 				fmt.Printf("going to fetch from WasteStorage: %d, %s\n", wasteStorage.ID, wasteStorage.Name)
-				fetched, err := h.Queries.FromStorsPlasticStors(h.Ctx, pgtype.Int8{Int64: wasteStorage.ID, Valid: true})
+				fetched, err := qtx.FromStorsPlasticStors(h.Ctx, pgtype.Int8{Int64: wasteStorage.ID, Valid: true})
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failure to get waste storages for waste storage:\n%v", err)})
 					return
@@ -352,7 +360,7 @@ func (h *Handler) ProduceWaste(c *gin.Context) {
 				ID:            wasteStorages[idClosest].ID,
 				StoredPlastic: pgtype.Int4{Int32: newStoredWaste, Valid: true},
 			}
-			updatedWasteStorage, err := h.Queries.PartlyUpdateWasteStorage(h.Ctx, params)
+			updatedWasteStorage, err := qtx.PartlyUpdateWasteStorage(h.Ctx, params)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to update waste storage's value of stored_plastic:\n%v", err)})
 				return
@@ -361,6 +369,10 @@ func (h *Handler) ProduceWaste(c *gin.Context) {
 		}
 	}
 
+	if err := tx.Commit(h.Ctx); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failure near Commit transaction:\n%v", err)})
+		return
+	}
 	//TOCHECK: final output
 	c.JSON(http.StatusOK, gin.H{
 		"message":                        "waste was fully distributed across waste storages",
