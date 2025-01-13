@@ -18,6 +18,7 @@ var server *gin.Engine
 var h = handlers.Handler{}
 
 func init() {
+	//TOCHECK: do i need to load .env file if docker-compose will set environment
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatalf("Unable to load .env file: %v\n", err)
@@ -43,7 +44,7 @@ func init() {
 }
 
 func main() {
-	defer h.Db.Close(context.Background())
+	defer h.Db.Close(h.Ctx)
 
 	r := server.Group("/api")
 

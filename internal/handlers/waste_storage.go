@@ -13,13 +13,13 @@ import (
 
 func (h *Handler) CreateWasteStorage(c *gin.Context) {
 	var req struct {
-		Name           string      `json:"name" binding:"required"`
-		PlasticLimit   pgtype.Int4 `json:"plastic_limit"`
-		GlassLimit     pgtype.Int4 `json:"glass_limit"`
-		BiowasteLimit  pgtype.Int4 `json:"biowaste_limit"`
-		StoredPlastic  pgtype.Int4 `json:"stored_plastic"`
-		StoredGlass    pgtype.Int4 `json:"stored_glass"`
-		StoredBiowaste pgtype.Int4 `json:"stored_biowaste"`
+		Name           string       `json:"name" binding:"required"`
+		PlasticLimit   *pgtype.Int4 `json:"plastic_limit,omitempty"`
+		GlassLimit     *pgtype.Int4 `json:"glass_limit,omitempty"`
+		BiowasteLimit  *pgtype.Int4 `json:"biowaste_limit,omitempty"`
+		StoredPlastic  *pgtype.Int4 `json:"stored_plastic,omitempty"`
+		StoredGlass    *pgtype.Int4 `json:"stored_glass,omitempty"`
+		StoredBiowaste *pgtype.Int4 `json:"stored_biowaste,omitempty"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body:\n%v", err)})
@@ -27,12 +27,12 @@ func (h *Handler) CreateWasteStorage(c *gin.Context) {
 
 	params := sqlc.CreateWasteStorageParams{
 		Name:           req.Name,
-		PlasticLimit:   req.PlasticLimit,
-		GlassLimit:     req.GlassLimit,
-		BiowasteLimit:  req.BiowasteLimit,
-		StoredPlastic:  req.StoredPlastic,
-		StoredGlass:    req.StoredGlass,
-		StoredBiowaste: req.StoredBiowaste,
+		PlasticLimit:   *req.PlasticLimit,
+		GlassLimit:     *req.GlassLimit,
+		BiowasteLimit:  *req.BiowasteLimit,
+		StoredPlastic:  *req.StoredPlastic,
+		StoredGlass:    *req.StoredGlass,
+		StoredBiowaste: *req.StoredBiowaste,
 	}
 	if err := h.Queries.CreateWasteStorage(h.Ctx, params); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create waste storage:\n%v", err)})
@@ -73,13 +73,13 @@ func (h *Handler) PartlyChangeWasteStorage(c *gin.Context) {
 	}
 
 	var req struct {
-		Name           *string      `json:"name"`
-		PlasticLimit   *pgtype.Int4 `json:"plastic_limit"`
-		GlassLimit     *pgtype.Int4 `json:"glass_limit"`
-		BiowasteLimit  *pgtype.Int4 `json:"biowaste_limit"`
-		StoredPlastic  *pgtype.Int4 `json:"stored_plastic"`
-		StoredGlass    *pgtype.Int4 `json:"stored_glass"`
-		StoredBiowaste *pgtype.Int4 `json:"stored_biowaste"`
+		Name           *string      `json:"name,omitempty"`
+		PlasticLimit   *pgtype.Int4 `json:"plastic_limit,omitempty"`
+		GlassLimit     *pgtype.Int4 `json:"glass_limit,omitempty"`
+		BiowasteLimit  *pgtype.Int4 `json:"biowaste_limit,omitempty"`
+		StoredPlastic  *pgtype.Int4 `json:"stored_plastic,omitempty"`
+		StoredGlass    *pgtype.Int4 `json:"stored_glass,omitempty"`
+		StoredBiowaste *pgtype.Int4 `json:"stored_biowaste,omitempty"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body:\n%v", err)})

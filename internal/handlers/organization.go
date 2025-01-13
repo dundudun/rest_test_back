@@ -14,14 +14,16 @@ import (
 )
 
 func (h *Handler) CreateOrganization(c *gin.Context) {
+	//TOCHECK: dynamic body and number of fields
+	//TOCHECK: check omitempty tag
 	var req struct {
-		Name             string      `json:"name" binding:"required"`
-		PlasticLimit     pgtype.Int4 `json:"plastic_limit"`
-		GlassLimit       pgtype.Int4 `json:"glass_limit"`
-		BiowasteLimit    pgtype.Int4 `json:"biowaste_limit"`
-		ProducedPlastic  pgtype.Int4 `json:"produced_plastic"`
-		ProducedGlass    pgtype.Int4 `json:"produced_glass"`
-		ProducedBiowaste pgtype.Int4 `json:"produced_biowaste"`
+		Name             string       `json:"name" binding:"required"`
+		PlasticLimit     *pgtype.Int4 `json:"plastic_limit,omitempty"`
+		GlassLimit       *pgtype.Int4 `json:"glass_limit,omitempty"`
+		BiowasteLimit    *pgtype.Int4 `json:"biowaste_limit,omitempty"`
+		ProducedPlastic  *pgtype.Int4 `json:"produced_plastic,omitempty"`
+		ProducedGlass    *pgtype.Int4 `json:"produced_glass,omitempty"`
+		ProducedBiowaste *pgtype.Int4 `json:"produced_biowaste,omitempty"`
 	}
 	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body:\n%v", err)})
@@ -30,12 +32,12 @@ func (h *Handler) CreateOrganization(c *gin.Context) {
 
 	params := sqlc.CreateOrganizationParams{
 		Name:             req.Name,
-		PlasticLimit:     req.PlasticLimit,
-		GlassLimit:       req.GlassLimit,
-		BiowasteLimit:    req.BiowasteLimit,
-		ProducedPlastic:  req.ProducedPlastic,
-		ProducedGlass:    req.ProducedGlass,
-		ProducedBiowaste: req.ProducedBiowaste,
+		PlasticLimit:     *req.PlasticLimit,
+		GlassLimit:       *req.GlassLimit,
+		BiowasteLimit:    *req.BiowasteLimit,
+		ProducedPlastic:  *req.ProducedPlastic,
+		ProducedGlass:    *req.ProducedGlass,
+		ProducedBiowaste: *req.ProducedBiowaste,
 	}
 	if err := h.Queries.CreateOrganization(h.Ctx, params); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create organization:\n%v", err)})
@@ -76,13 +78,13 @@ func (h *Handler) PartlyChangeOrganization(c *gin.Context) {
 	}
 
 	var req struct {
-		Name             *string      `json:"name"`
-		PlasticLimit     *pgtype.Int4 `json:"plastic_limit"`
-		GlassLimit       *pgtype.Int4 `json:"glass_limit"`
-		BiowasteLimit    *pgtype.Int4 `json:"biowaste_limit"`
-		ProducedPlastic  *pgtype.Int4 `json:"produced_plastic"`
-		ProducedGlass    *pgtype.Int4 `json:"produced_glass"`
-		ProducedBiowaste *pgtype.Int4 `json:"produced_biowaste"`
+		Name             *string      `json:"name,omitempty"`
+		PlasticLimit     *pgtype.Int4 `json:"plastic_limit,omitempty"`
+		GlassLimit       *pgtype.Int4 `json:"glass_limit,omitempty"`
+		BiowasteLimit    *pgtype.Int4 `json:"biowaste_limit,omitempty"`
+		ProducedPlastic  *pgtype.Int4 `json:"produced_plastic,omitempty"`
+		ProducedGlass    *pgtype.Int4 `json:"produced_glass,omitempty"`
+		ProducedBiowaste *pgtype.Int4 `json:"produced_biowaste,omitempty"`
 	}
 	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body:\n%v", err)})

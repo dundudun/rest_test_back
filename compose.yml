@@ -1,5 +1,5 @@
 services:
-  # app:
+  # backend:
   #   build: 
   #     dockerfile: ./Dockerfile
   #   command: 
