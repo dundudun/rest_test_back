@@ -42,6 +42,7 @@ update waste_storage set
 where id  = $1
 returning *;
 
--- name: DeleteWasteStorage :exec
+-- name: DeleteWasteStorage :one
 delete from waste_storage
-where id = $1;
+where id = $1
+returning id;

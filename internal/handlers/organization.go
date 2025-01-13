@@ -3,11 +3,13 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"reflect"
 	"strconv"
 
 	"github.com/dundudun/rest_test_back/db/sqlc"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -23,6 +25,7 @@ func (h *Handler) CreateOrganization(c *gin.Context) {
 	}
 	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body:\n%v", err)})
+		return
 	}
 
 	params := sqlc.CreateOrganizationParams{
@@ -86,16 +89,22 @@ func (h *Handler) PartlyChangeOrganization(c *gin.Context) {
 		return
 	}
 
-	params := sqlc.PartlyUpdateOrganizationParams{
-		ID:               id,
-		Name:             *req.Name,
-		PlasticLimit:     *req.PlasticLimit,
-		GlassLimit:       *req.GlassLimit,
-		BiowasteLimit:    *req.BiowasteLimit,
-		ProducedPlastic:  *req.ProducedPlastic,
-		ProducedGlass:    *req.ProducedGlass,
-		ProducedBiowaste: *req.ProducedBiowaste,
+	params := sqlc.PartlyUpdateOrganizationParams{ID: id}
+
+	reqVal := reflect.ValueOf(req)
+	reqType := reflect.TypeOf(req)
+	paramVal := reflect.ValueOf(&params).Elem()
+
+	for i := 0; i < reqVal.NumField(); i++ {
+		fieldName := reqType.Field(i)
+		reqField := reqVal.Field(i)
+		paramsField := paramVal.FieldByName(fieldName.Name)
+
+		for reqField.IsValid() && !reqField.IsNil() {
+			paramsField.Set(reqField.Elem())
+		}
 	}
+
 	if _, err := h.Queries.PartlyUpdateOrganization(h.Ctx, params); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update organization"})
 		return
@@ -149,7 +158,12 @@ func (h *Handler) DeleteOrganization(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid organization ID:\n%v", err)})
 		return
 	}
-	if err := h.Queries.DeleteOrganization(h.Ctx, id); err != nil {
+
+	if _, err = h.Queries.DeleteOrganization(h.Ctx, id); err != nil {
+		if err == pgx.ErrNoRows {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("no organization with such id: %d", id)})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to delete organization:\n%v", err)})
 		return
 	}

@@ -26,6 +26,7 @@ func init() {
 	DATABASE_URL := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s",
 		os.Getenv("POSTGRES_USER"),
 		os.Getenv("POSTGRES_PASSWORD"),
+		//"127.0.0.1",
 		os.Getenv("POSTGRES_HOST"),
 		os.Getenv("POSTGRES_PORT"),
 		os.Getenv("POSTGRES_DB"),

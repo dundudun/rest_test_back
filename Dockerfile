@@ -1,4 +1,4 @@
-FROM go:1.23.4-alpine3.21
+FROM golang:1.23.4-alpine
 
 WORKDIR /usr/src/app
 
@@ -6,10 +6,10 @@ COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
 COPY . .
-RUN go build ./cmd/main/main.go -v -o /usr/local/bin/app ./...
+RUN go build -o /usr/local/bin/app ./cmd/main
 
-RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-RUN sqlc generate
+#RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+#RUN sqlc generate
 
 EXPOSE 8080
 

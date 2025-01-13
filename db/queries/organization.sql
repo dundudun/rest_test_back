@@ -42,6 +42,7 @@ update organization set
 where id = $1
 returning *;
 
--- name: DeleteOrganization :exec
+-- name: DeleteOrganization :one
 delete from organization
-where id = $1;
+where id = $1
+returning id;
