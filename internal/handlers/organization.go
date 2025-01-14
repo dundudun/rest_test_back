@@ -3,127 +3,140 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"reflect"
 	"strconv"
 
 	"github.com/dundudun/rest_test_back/db/sqlc"
+	"github.com/dundudun/rest_test_back/internal/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-func (h *Handler) CreateOrganization(c *gin.Context) {
+func (handler *Handler) CreateOrganization(c *gin.Context) {
 	//TOCHECK: dynamic body and number of fields
-	//TOCHECK: check omitempty tag
-	var req struct {
-		Name             string       `json:"name" binding:"required"`
-		PlasticLimit     *pgtype.Int4 `json:"plastic_limit,omitempty"`
-		GlassLimit       *pgtype.Int4 `json:"glass_limit,omitempty"`
-		BiowasteLimit    *pgtype.Int4 `json:"biowaste_limit,omitempty"`
-		ProducedPlastic  *pgtype.Int4 `json:"produced_plastic,omitempty"`
-		ProducedGlass    *pgtype.Int4 `json:"produced_glass,omitempty"`
-		ProducedBiowaste *pgtype.Int4 `json:"produced_biowaste,omitempty"`
+	//TOCHECK: what values will be in *pgtype.Int4 (*pgtype.Int4.Int32 and *pgtype.Int4.Valid)
+	//TOCHECK: if name is required as expected and other fields are optional as expected (should be in test also)
+	var requestBody struct {
+		Name             pgtype.Text  `json:"name" binding:"required"`
+		PlasticLimit     *pgtype.Int4 `json:"plastic_limit"`
+		GlassLimit       *pgtype.Int4 `json:"glass_limit"`
+		BiowasteLimit    *pgtype.Int4 `json:"biowaste_limit"`
+		ProducedPlastic  *pgtype.Int4 `json:"produced_plastic"`
+		ProducedGlass    *pgtype.Int4 `json:"produced_glass"`
+		ProducedBiowaste *pgtype.Int4 `json:"produced_biowaste"`
 	}
-	if err := c.BindJSON(&req); err != nil {
+	if err := c.BindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body:\n%v", err)})
 		return
 	}
 
 	params := sqlc.CreateOrganizationParams{
-		Name:             req.Name,
-		PlasticLimit:     *req.PlasticLimit,
-		GlassLimit:       *req.GlassLimit,
-		BiowasteLimit:    *req.BiowasteLimit,
-		ProducedPlastic:  *req.ProducedPlastic,
-		ProducedGlass:    *req.ProducedGlass,
-		ProducedBiowaste: *req.ProducedBiowaste,
+		Name:             requestBody.Name,
+		PlasticLimit:     utils.OptionalInt4(requestBody.PlasticLimit),
+		GlassLimit:       utils.OptionalInt4(requestBody.GlassLimit),
+		BiowasteLimit:    utils.OptionalInt4(requestBody.BiowasteLimit),
+		ProducedPlastic:  utils.OptionalInt4(requestBody.ProducedPlastic),
+		ProducedGlass:    utils.OptionalInt4(requestBody.ProducedGlass),
+		ProducedBiowaste: utils.OptionalInt4(requestBody.ProducedBiowaste),
 	}
-	if err := h.Queries.CreateOrganization(h.Ctx, params); err != nil {
+	organization, err := handler.Queries.CreateOrganization(handler.Ctx, params)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create organization:\n%v", err)})
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, organization)
 }
 
-func (h *Handler) GetOrganization(c *gin.Context) {
+func (handler *Handler) GetOrganization(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid organization ID:\n%v", err)})
 		return
 	}
-	org, err := h.Queries.GetOrganization(h.Ctx, id)
+	organization, err := handler.Queries.GetOrganization(handler.Ctx, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to get organization:\n%v", err)})
 		return
 	}
-	c.JSON(http.StatusOK, org)
+	c.JSON(http.StatusOK, organization)
 }
 
-func (h *Handler) ListOrganizations(c *gin.Context) {
-	orgs, err := h.Queries.ListOrganizations(h.Ctx)
+func (handler *Handler) ListOrganizations(c *gin.Context) {
+	organizations, err := handler.Queries.ListOrganizations(handler.Ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to get organizations:\n%v", err)})
 		return
 	}
-	c.JSON(http.StatusOK, orgs)
+	c.JSON(http.StatusOK, organizations)
 }
 
-func (h *Handler) PartlyChangeOrganization(c *gin.Context) {
+func (handler *Handler) PartlyChangeOrganization(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid organization ID"})
 		return
 	}
 
-	var req struct {
-		Name             *string      `json:"name,omitempty"`
-		PlasticLimit     *pgtype.Int4 `json:"plastic_limit,omitempty"`
-		GlassLimit       *pgtype.Int4 `json:"glass_limit,omitempty"`
-		BiowasteLimit    *pgtype.Int4 `json:"biowaste_limit,omitempty"`
-		ProducedPlastic  *pgtype.Int4 `json:"produced_plastic,omitempty"`
-		ProducedGlass    *pgtype.Int4 `json:"produced_glass,omitempty"`
-		ProducedBiowaste *pgtype.Int4 `json:"produced_biowaste,omitempty"`
+	var requestBody struct {
+		Name             *pgtype.Text `json:"name"`
+		PlasticLimit     *pgtype.Int4 `json:"plastic_limit"`
+		GlassLimit       *pgtype.Int4 `json:"glass_limit"`
+		BiowasteLimit    *pgtype.Int4 `json:"biowaste_limit"`
+		ProducedPlastic  *pgtype.Int4 `json:"produced_plastic"`
+		ProducedGlass    *pgtype.Int4 `json:"produced_glass"`
+		ProducedBiowaste *pgtype.Int4 `json:"produced_biowaste"`
 	}
-	if err := c.BindJSON(&req); err != nil {
+	if err := c.BindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body:\n%v", err)})
 		return
 	}
 
-	params := sqlc.PartlyUpdateOrganizationParams{ID: id}
-
-	reqVal := reflect.ValueOf(req)
-	reqType := reflect.TypeOf(req)
-	paramVal := reflect.ValueOf(&params).Elem()
-
-	for i := 0; i < reqVal.NumField(); i++ {
-		fieldName := reqType.Field(i)
-		reqField := reqVal.Field(i)
-		paramsField := paramVal.FieldByName(fieldName.Name)
-
-		for reqField.IsValid() && !reqField.IsNil() {
-			paramsField.Set(reqField.Elem())
-		}
+	//TOCHECK: that i can't set values to null accidently
+	params := sqlc.PartlyUpdateOrganizationParams{
+		ID:               id,
+		Name:             utils.OptionalText(requestBody.Name),
+		PlasticLimit:     utils.OptionalInt4(requestBody.PlasticLimit),
+		GlassLimit:       utils.OptionalInt4(requestBody.GlassLimit),
+		BiowasteLimit:    utils.OptionalInt4(requestBody.BiowasteLimit),
+		ProducedPlastic:  utils.OptionalInt4(requestBody.ProducedPlastic),
+		ProducedGlass:    utils.OptionalInt4(requestBody.ProducedGlass),
+		ProducedBiowaste: utils.OptionalInt4(requestBody.ProducedBiowaste),
 	}
 
-	if _, err := h.Queries.PartlyUpdateOrganization(h.Ctx, params); err != nil {
+	// reqVal := reflect.ValueOf(req)
+	// reqType := reflect.TypeOf(req)
+	// paramVal := reflect.ValueOf(&params).Elem()
+
+	// for i := 0; i < reqVal.NumField(); i++ {
+	// 	fieldName := reqType.Field(i)
+	// 	reqField := reqVal.Field(i)
+	// 	paramsField := paramVal.FieldByName(fieldName.Name)
+
+	// 	for reqField.IsValid() && !reqField.IsNil() {
+	// 		paramsField.Set(reqField.Elem())
+	// 	}
+	// }
+
+	organization, err := handler.Queries.PartlyUpdateOrganization(handler.Ctx, params)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update organization"})
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, organization)
 }
 
-func (h *Handler) ChangeOrganization(c *gin.Context) {
+func (handler *Handler) ChangeOrganization(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid organization ID"})
 		return
 	}
 
-	var req struct {
-		Name             string      `json:"name" binding:"required"`
+	var requestBody struct {
+		Name             pgtype.Text `json:"name" binding:"required"`
 		PlasticLimit     pgtype.Int4 `json:"plastic_limit" binding:"required"`
 		GlassLimit       pgtype.Int4 `json:"glass_limit" binding:"required"`
 		BiowasteLimit    pgtype.Int4 `json:"biowaste_limit" binding:"required"`
@@ -131,37 +144,39 @@ func (h *Handler) ChangeOrganization(c *gin.Context) {
 		ProducedGlass    pgtype.Int4 `json:"produced_glass" binding:"required"`
 		ProducedBiowaste pgtype.Int4 `json:"produced_biowaste" binding:"required"`
 	}
-	if err := c.BindJSON(&req); err != nil {
+	if err := c.BindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body:\n%v", err)})
 		return
 	}
 
 	params := sqlc.UpdateOrganizationParams{
 		ID:               id,
-		Name:             req.Name,
-		PlasticLimit:     req.PlasticLimit,
-		GlassLimit:       req.GlassLimit,
-		BiowasteLimit:    req.BiowasteLimit,
-		ProducedPlastic:  req.ProducedPlastic,
-		ProducedGlass:    req.ProducedGlass,
-		ProducedBiowaste: req.ProducedBiowaste,
+		Name:             requestBody.Name,
+		PlasticLimit:     requestBody.PlasticLimit,
+		GlassLimit:       requestBody.GlassLimit,
+		BiowasteLimit:    requestBody.BiowasteLimit,
+		ProducedPlastic:  requestBody.ProducedPlastic,
+		ProducedGlass:    requestBody.ProducedGlass,
+		ProducedBiowaste: requestBody.ProducedBiowaste,
 	}
-	if err := h.Queries.UpdateOrganization(h.Ctx, params); err != nil {
+	organization, err := handler.Queries.UpdateOrganization(handler.Ctx, params)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to update organization:\n%v", err)})
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, organization)
 }
 
-func (h *Handler) DeleteOrganization(c *gin.Context) {
+func (handler *Handler) DeleteOrganization(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid organization ID:\n%v", err)})
 		return
 	}
 
-	if _, err = h.Queries.DeleteOrganization(h.Ctx, id); err != nil {
+	//TOCHECK: if pgx.ErrNoRows works correctly
+	if _, err = handler.Queries.DeleteOrganization(handler.Ctx, id); err != nil {
 		if err == pgx.ErrNoRows {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("no organization with such id: %d", id)})
 			return
@@ -172,35 +187,35 @@ func (h *Handler) DeleteOrganization(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (h *Handler) ProduceWaste(c *gin.Context) {
-	tx, err := h.Db.Begin(h.Ctx)
+func (handler *Handler) ProduceWaste(c *gin.Context) {
+	tx, err := handler.Db.Begin(handler.Ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failure to start transaction:\n%v", err)})
 		return
 	}
-	defer tx.Rollback(h.Ctx)
-	qtx := h.Queries.WithTx(tx)
+	defer tx.Rollback(handler.Ctx)
+	qtx := handler.Queries.WithTx(tx)
 
-	overProduce := int32(0)
+	overproduce := int32(0)
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid organization ID:\n%v", err)})
 		return
 	}
-	org, err := qtx.GetOrganization(h.Ctx, id)
+	organization, err := qtx.GetOrganization(handler.Ctx, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failure to get organization from db:\n%v", err)})
 		return
 	}
 
-	amount64, err := strconv.ParseInt(c.Param("amount"), 10, 32)
+	wasteAmountToAddInt64, err := strconv.ParseInt(c.Query("amount"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("failure of getting 'amount' query parameter:\n%v", err)})
 		return
 	}
-	amount := int32(amount64)
-	if amount <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "amount shouldn't be less or equal to 0"})
+	wasteAmountToAdd := int32(wasteAmountToAddInt64)
+	if wasteAmountToAdd <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "waste amount to add shouldn't be less or equal to 0"})
 		return
 	}
 
@@ -216,34 +231,34 @@ func (h *Handler) ProduceWaste(c *gin.Context) {
 	}
 
 	/*
-		query next layer (1st layer from Organizations is outside loop)
-		add wasteStorages from new layer to all wasteStorages (for ones from wasteStorage accumulate Distance with parent)
+		query next level (1st level from Organizations is outside loop)
+		add wasteStorages from new level to all wasteStorages (for ones from wasteStorage accumulate Distance with parent)
 		find across all wasteStorages that we haven't worked with one that have min distance
 		mark it somehow or pop it?
 		work with one that have min distance
 			if have free space in storage subract from amount
 			if no free space just do nothing, go further
 		check amount on zero
-			if greater than zero repeat for next layer
+			if greater than zero repeat for next level
 			in other case exit loop
 	*/
 
-	//TODO: try slice first, then see if map[layer]fetchedWasteStorages would be better
+	//TODO: try slice first, then see if map[level]fetchedWasteStorages would be better
 	var wasteStorages []fetchedWasteStorages
 	var updatedWasteStorages []sqlc.WasteStorage
 
-	layer := 1
-	// 1st layer (one next to Organization)
+	level := 1
+	// 1st level (one next to Organization)
 	fmt.Printf("going to fetch from Organization: %d\n", id)
-	fetched, err := qtx.FromOrgPlasticStors(h.Ctx, pgtype.Int8{Int64: id, Valid: true})
+	fetched, err := qtx.FromOrgPlasticStors(handler.Ctx, pgtype.Int8{Int64: id, Valid: true})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failure to get waste storages for organization:\n%v", err)})
 		return
 	}
 	if len(fetched) == 0 {
 		//TOCHECK: query to update Organization produced_wastetype value if there isn't WasteStorages for it
-		//TOCHECK: overProduce
-		org := h.addWasteToOrg(c, &org, amount)
+		//TOCHECK: overproduce
+		org := handler.addWasteToOrg(c, &organization, wasteAmountToAdd)
 		if org == nil {
 			return
 		}
@@ -251,20 +266,20 @@ func (h *Handler) ProduceWaste(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message":                        "no wasteStorages for organization",
 			"organization":                   org,
-			"waste_storages":                 updatedWasteStorages,
-			"waste_above_organization_limit": overProduce,
+			"changed_waste_storages":         updatedWasteStorages,
+			"waste_above_organization_limit": overproduce,
 		})
 		return
 	}
-	for _, stor := range fetched {
+	for _, storage := range fetched {
 		wasteStorages = append(wasteStorages, fetchedWasteStorages{
 			WorkedWith:     false,
-			Layer:          layer,
-			ID:             stor.ID,
-			Name:           stor.Name,
-			WasteLimit:     stor.PlasticLimit,
-			StoredWaste:    stor.StoredPlastic,
-			DistanceMeters: stor.DistanceMeters,
+			level:          level,
+			ID:             storage.ID,
+			Name:           storage.Name,
+			WasteLimit:     storage.PlasticLimit,
+			StoredWaste:    storage.StoredPlastic,
+			DistanceMeters: storage.DistanceMeters,
 		})
 	}
 	idClosest := findClosestWasteStorage(wasteStorages)
@@ -273,11 +288,11 @@ func (h *Handler) ProduceWaste(c *gin.Context) {
 	freeSpaceInStore := wasteStorages[idClosest].WasteLimit.Int32 - wasteStorages[idClosest].StoredWaste.Int32
 	if freeSpaceInStore > 0 {
 		var newStoredWaste int32
-		if freeSpaceInStore >= amount {
-			amount = 0
-			newStoredWaste = wasteStorages[idClosest].StoredWaste.Int32 + amount
+		if freeSpaceInStore >= wasteAmountToAdd {
+			wasteAmountToAdd = 0
+			newStoredWaste = wasteStorages[idClosest].StoredWaste.Int32 + wasteAmountToAdd
 		} else {
-			amount -= freeSpaceInStore
+			wasteAmountToAdd -= freeSpaceInStore
 			newStoredWaste = wasteStorages[idClosest].WasteLimit.Int32
 		}
 
@@ -285,7 +300,7 @@ func (h *Handler) ProduceWaste(c *gin.Context) {
 			ID:            wasteStorages[idClosest].ID,
 			StoredPlastic: pgtype.Int4{Int32: newStoredWaste, Valid: true},
 		}
-		updatedWasteStorage, err := qtx.PartlyUpdateWasteStorage(h.Ctx, params)
+		updatedWasteStorage, err := qtx.PartlyUpdateWasteStorage(handler.Ctx, params)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to update waste storage's value of stored_plastic:\n%v", err)})
 			return
@@ -293,29 +308,29 @@ func (h *Handler) ProduceWaste(c *gin.Context) {
 		updatedWasteStorages = append(updatedWasteStorages, updatedWasteStorage)
 	}
 
-	// all next layers (ones after WasteStorages)
-	nextLayer := true
-	for amount > 0 {
-		//TOCHECK: to not get in this loop if waste was distributed on 1st layer
+	// all next levels (ones after WasteStorages)
+	nextLevel := true
+	for wasteAmountToAdd > 0 {
+		//TOCHECK: to not get in this loop if waste was distributed on 1st level
 		//TOCHECK: exiting right when produced waste is distributed and no more db calls or loops
 		//TOCHECK: to correctly get new closest wasteStorage each time and skip ones that we looked up already
 		//TOCHECK: if wasteStorages are full but amount of waste still left
 		//TOCHECK: do not call db if there isn't more connections
 		//TOCHECK: to correctly update/distribute values across wasteStorages
 		//TODO: remore this if statement after testing
-		if !nextLayer {
+		if !nextLevel {
 			fmt.Println("no WasteStorages have connections to another ones")
-		} else if nextLayer {
-			layer++
+		} else if nextLevel {
+			level++
 			counter := 0
-			// fetch next layer from previous one
+			// fetch next level from previous one
 			for _, wasteStorage := range wasteStorages {
-				if wasteStorage.Layer-1 != layer {
+				if wasteStorage.level-1 != level {
 					counter++
 					continue
 				}
-				fmt.Printf("going to fetch from WasteStorage: %d, %s\n", wasteStorage.ID, wasteStorage.Name)
-				fetched, err := qtx.FromStorsPlasticStors(h.Ctx, pgtype.Int8{Int64: wasteStorage.ID, Valid: true})
+				fmt.Printf("going to fetch from WasteStorage: %d, %s\n", wasteStorage.ID, wasteStorage.Name.String)
+				fetched, err := qtx.FromStorsPlasticStors(handler.Ctx, pgtype.Int8{Int64: wasteStorage.ID, Valid: true})
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failure to get waste storages for waste storage:\n%v", err)})
 					return
@@ -327,7 +342,7 @@ func (h *Handler) ProduceWaste(c *gin.Context) {
 				for _, stor := range fetched {
 					wasteStorages = append(wasteStorages, fetchedWasteStorages{
 						WorkedWith:     false,
-						Layer:          layer,
+						level:          level,
 						ID:             stor.ID,
 						Name:           stor.Name,
 						WasteLimit:     stor.PlasticLimit,
@@ -338,14 +353,14 @@ func (h *Handler) ProduceWaste(c *gin.Context) {
 			}
 
 			if counter == len(wasteStorages) {
-				nextLayer = false
+				nextLevel = false
 			}
 		}
 
 		idClosest = findClosestWasteStorage(wasteStorages)
 		if idClosest == -1 {
 			//TOCHECK: update Organization produced_wastetype value and list of WasteStorages
-			org := h.addWasteToOrg(c, &org, amount)
+			org := handler.addWasteToOrg(c, &organization, wasteAmountToAdd)
 			if org == nil {
 				return
 			}
@@ -353,22 +368,22 @@ func (h *Handler) ProduceWaste(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				"message":                        "no more wasteStorages available to receive waste",
 				"organization":                   org,
-				"waste_storages":                 updatedWasteStorages,
-				"waste_above_organization_limit": overProduce,
+				"changed_waste_storages":         updatedWasteStorages,
+				"waste_above_organization_limit": overproduce,
 			})
 			return
 		}
 
 		wasteStorages[idClosest].WorkedWith = true
 
-		freeSpaceInStore := wasteStorages[idClosest].WasteLimit.Int32 - wasteStorages[idClosest].StoredWaste.Int32
-		if freeSpaceInStore > 0 {
+		freeSpaceInStorage := wasteStorages[idClosest].WasteLimit.Int32 - wasteStorages[idClosest].StoredWaste.Int32
+		if freeSpaceInStorage > 0 {
 			var newStoredWaste int32
-			if freeSpaceInStore >= amount {
-				amount = 0
-				newStoredWaste = wasteStorages[idClosest].StoredWaste.Int32 + amount
+			if freeSpaceInStorage >= wasteAmountToAdd {
+				wasteAmountToAdd = 0
+				newStoredWaste = wasteStorages[idClosest].StoredWaste.Int32 + wasteAmountToAdd
 			} else {
-				amount -= freeSpaceInStore
+				wasteAmountToAdd -= freeSpaceInStorage
 				newStoredWaste = wasteStorages[idClosest].WasteLimit.Int32
 			}
 
@@ -376,7 +391,7 @@ func (h *Handler) ProduceWaste(c *gin.Context) {
 				ID:            wasteStorages[idClosest].ID,
 				StoredPlastic: pgtype.Int4{Int32: newStoredWaste, Valid: true},
 			}
-			updatedWasteStorage, err := qtx.PartlyUpdateWasteStorage(h.Ctx, params)
+			updatedWasteStorage, err := qtx.PartlyUpdateWasteStorage(handler.Ctx, params)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to update waste storage's value of stored_plastic:\n%v", err)})
 				return
@@ -385,56 +400,57 @@ func (h *Handler) ProduceWaste(c *gin.Context) {
 		}
 	}
 
-	if err := tx.Commit(h.Ctx); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failure near Commit transaction:\n%v", err)})
+	if err := tx.Commit(handler.Ctx); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("fail to Commit transaction:\n%v", err)})
 		return
 	}
 	//TOCHECK: final output
 	c.JSON(http.StatusOK, gin.H{
 		"message":                        "waste was fully distributed across waste storages",
-		"organization":                   org,
-		"waste_storages":                 updatedWasteStorages,
-		"waste_above_organization_limit": overProduce,
+		"organization":                   organization,
+		"updated_waste_storages":         updatedWasteStorages,
+		"waste_above_organization_limit": overproduce,
 	})
 }
 
 type fetchedWasteStorages struct {
 	WorkedWith     bool
-	Layer          int
+	level          int
 	ID             int64
-	Name           string
+	Name           pgtype.Text
 	WasteLimit     pgtype.Int4
 	StoredWaste    pgtype.Int4
 	DistanceMeters int32
 }
 
 func findClosestWasteStorage(wasteStorages []fetchedWasteStorages) int {
-	idStorMinDist := -1
+	StorageIdWithMinDistance := -1
 
 	for i, wasteStorage := range wasteStorages {
 		if wasteStorage.WorkedWith {
 			continue
 		}
 
-		if idStorMinDist == -1 {
-			idStorMinDist = i
-		} else if wasteStorage.DistanceMeters < wasteStorages[idStorMinDist].DistanceMeters {
-			idStorMinDist = i
+		if StorageIdWithMinDistance == -1 {
+			StorageIdWithMinDistance = i
+		} else if wasteStorage.DistanceMeters < wasteStorages[StorageIdWithMinDistance].DistanceMeters {
+			StorageIdWithMinDistance = i
 		}
 	}
 
-	return idStorMinDist
+	return StorageIdWithMinDistance
 }
 
-func (h *Handler) addWasteToOrg(c *gin.Context, org *sqlc.Organization, amount int32) *sqlc.Organization {
-	overProduce := (org.ProducedPlastic.Int32 + amount) % org.PlasticLimit.Int32
-	newValue := (org.ProducedPlastic.Int32 + amount) - overProduce
+func (handler *Handler) addWasteToOrg(c *gin.Context, organization *sqlc.Organization, wasteAmountToAdd int32) *sqlc.Organization {
+	//TODO: flexibily on wastetype to add (and add all three wastetypes)
+	overproduce := (organization.ProducedPlastic.Int32 + wasteAmountToAdd) % organization.PlasticLimit.Int32
+	newValue := (organization.ProducedPlastic.Int32 + wasteAmountToAdd) - overproduce
 
-	params := sqlc.PartlyUpdateOrganizationParams{ID: org.ID, ProducedPlastic: pgtype.Int4{Int32: newValue, Valid: true}}
-	new_org, err := h.Queries.PartlyUpdateOrganization(h.Ctx, params)
+	params := sqlc.PartlyUpdateOrganizationParams{ID: organization.ID, ProducedPlastic: pgtype.Int4{Int32: newValue, Valid: true}}
+	newOrganization, err := handler.Queries.PartlyUpdateOrganization(handler.Ctx, params)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failure to update organization's value of produced plastic:\n%v", err)})
 		return nil
 	}
-	return &new_org
+	return &newOrganization
 }

@@ -1,6 +1,6 @@
 CREATE TABLE organization (
     id bigserial PRIMARY KEY,
-    name text NOT NULL,
+    name text,
     plastic_limit integer,
     glass_limit integer,
     biowaste_limit integer,
@@ -11,7 +11,7 @@ CREATE TABLE organization (
 
 CREATE TABLE waste_storage (
     id bigserial PRIMARY KEY,
-    name text NOT NULL,
+    name text,
     plastic_limit integer,
     glass_limit integer,
     biowaste_limit integer,

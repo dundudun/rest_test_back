@@ -15,7 +15,7 @@ import (
 )
 
 var server *gin.Engine
-var h = handlers.Handler{}
+var handler = handlers.Handler{}
 
 func init() {
 	//TOCHECK: do i need to load .env file if docker-compose will set environment
@@ -33,40 +33,40 @@ func init() {
 		os.Getenv("POSTGRES_DB"),
 	)
 
-	h.Ctx = context.Background()
-	h.Db, err = pgx.Connect(h.Ctx, DATABASE_URL)
+	handler.Ctx = context.Background()
+	handler.Db, err = pgx.Connect(handler.Ctx, DATABASE_URL)
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v\n", err)
 	}
 
-	h.Queries = sqlc.New(h.Db)
+	handler.Queries = sqlc.New(handler.Db)
 	server = gin.Default()
 }
 
 func main() {
-	defer h.Db.Close(h.Ctx)
+	defer handler.Db.Close(handler.Ctx)
 
-	r := server.Group("/api")
+	router := server.Group("/api")
 
-	org := r.Group("/organizations")
+	organization := router.Group("/organizations")
 	{
-		org.POST("", h.CreateOrganization)
-		org.GET("", h.ListOrganizations)
-		org.GET("/:id", h.GetOrganization)
-		org.PUT("/:id", h.ChangeOrganization)
-		org.PATCH("/:id", h.PartlyChangeOrganization)
-		org.DELETE("/:id", h.DeleteOrganization)
-		org.POST("/:id/produce", h.ProduceWaste)
+		organization.POST("", handler.CreateOrganization)
+		organization.GET("", handler.ListOrganizations)
+		organization.GET("/:id", handler.GetOrganization)
+		organization.PUT("/:id", handler.ChangeOrganization)
+		organization.PATCH("/:id", handler.PartlyChangeOrganization)
+		organization.DELETE("/:id", handler.DeleteOrganization)
+		organization.POST("/:id/produce", handler.ProduceWaste)
 	}
 
-	stor := r.Group("/waste_storages")
+	storage := router.Group("/waste_storages")
 	{
-		stor.POST("", h.CreateWasteStorage)
-		stor.GET("", h.ListWasteStorages)
-		stor.GET("/:id", h.GetWasteStorage)
-		stor.PUT("/:id", h.ChangeWasteStorage)
-		stor.PATCH("/:id", h.PartlyChangeWasteStorage)
-		stor.DELETE("/:id", h.DeleteWasteStorage)
+		storage.POST("", handler.CreateWasteStorage)
+		storage.GET("", handler.ListWasteStorages)
+		storage.GET("/:id", handler.GetWasteStorage)
+		storage.PUT("/:id", handler.ChangeWasteStorage)
+		storage.PATCH("/:id", handler.PartlyChangeWasteStorage)
+		storage.DELETE("/:id", handler.DeleteWasteStorage)
 	}
 
 	server.Run(":8080")

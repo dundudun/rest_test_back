@@ -1,4 +1,4 @@
--- name: CreateWasteStorage :exec
+-- name: CreateWasteStorage :one
 insert into waste_storage (
     name, 
     plastic_limit, 
@@ -9,7 +9,7 @@ insert into waste_storage (
     stored_biowaste
 ) values (
     $1, $2, $3, $4, $5, $6, $7
-);
+) returning *;
 
 -- name: ListWasteStorage :many
 select * from waste_storage 
@@ -19,7 +19,7 @@ order by name;
 select * from waste_storage 
 where id = $1 limit 1;
 
--- name: UpdateWasteStorage :exec
+-- name: UpdateWasteStorage :one
 update waste_storage set
     name = $2, 
     plastic_limit = $3, 
@@ -28,7 +28,8 @@ update waste_storage set
     stored_plastic = $6,
     stored_glass = $7,
     stored_biowaste = $8
-where id = $1;
+where id = $1
+returning *;
 
 -- name: PartlyUpdateWasteStorage :one
 update waste_storage set
@@ -45,4 +46,4 @@ returning *;
 -- name: DeleteWasteStorage :one
 delete from waste_storage
 where id = $1
-returning id;
+returning *;

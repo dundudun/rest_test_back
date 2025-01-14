@@ -1,4 +1,4 @@
--- name: CreateOrganization :exec
+-- name: CreateOrganization :one
 insert into organization (
     name, 
     plastic_limit, 
@@ -9,7 +9,7 @@ insert into organization (
     produced_biowaste
 ) values (
     $1, $2, $3, $4, $5, $6, $7
-);
+) returning *;
 
 -- name: ListOrganizations :many
 select * from organization 
@@ -19,7 +19,7 @@ order by name;
 select * from organization 
 where id = $1 limit 1;
 
--- name: UpdateOrganization :exec
+-- name: UpdateOrganization :one
 update organization set
     name = $2, 
     plastic_limit = $3, 
@@ -28,7 +28,8 @@ update organization set
     produced_plastic = $6,
     produced_glass = $7,
     produced_biowaste = $8
-where id = $1;
+where id = $1
+returning *;
 
 -- name: PartlyUpdateOrganization :one
 update organization set
