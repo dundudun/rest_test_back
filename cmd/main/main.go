@@ -8,8 +8,10 @@ import (
 
 	"github.com/dundudun/rest_test_back/db/sqlc"
 	"github.com/dundudun/rest_test_back/internal/handlers"
+	"github.com/go-playground/validator/v10"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 )
@@ -41,6 +43,11 @@ func init() {
 
 	handler.Queries = sqlc.New(handler.Db)
 	server = gin.Default()
+
+	//TOTHINK: maybe it's place somewhere else, closer to validators
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterStructValidation(handlers.OrganizationValidation, handlers.OrganizationCreate{})
+	}
 }
 
 func main() {

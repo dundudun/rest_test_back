@@ -17,15 +17,7 @@ func (handler *Handler) CreateOrganization(c *gin.Context) {
 	//TOCHECK: dynamic body and number of fields
 	//TOCHECK: what values will be in *pgtype.Int4 (*pgtype.Int4.Int32 and *pgtype.Int4.Valid)
 	//TOCHECK: if name is required as expected and other fields are optional as expected (should be in test also)
-	var requestBody struct {
-		Name             pgtype.Text  `json:"name" binding:"required"`
-		PlasticLimit     *pgtype.Int4 `json:"plastic_limit"`
-		GlassLimit       *pgtype.Int4 `json:"glass_limit"`
-		BiowasteLimit    *pgtype.Int4 `json:"biowaste_limit"`
-		ProducedPlastic  *pgtype.Int4 `json:"produced_plastic"`
-		ProducedGlass    *pgtype.Int4 `json:"produced_glass"`
-		ProducedBiowaste *pgtype.Int4 `json:"produced_biowaste"`
-	}
+	var requestBody OrganizationCreate
 	if err := c.BindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body:\n%v", err)})
 		return
