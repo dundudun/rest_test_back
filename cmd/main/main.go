@@ -47,6 +47,7 @@ func init() {
 	//TOTHINK: maybe it's place somewhere else, closer to validators
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterStructValidation(handlers.OrganizationValidation, handlers.OrganizationCreate{})
+		v.RegisterStructValidation(handlers.WasteStorageValidation, handlers.WasteStorageCreate{})
 	}
 }
 

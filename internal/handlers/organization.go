@@ -71,15 +71,7 @@ func (handler *Handler) PartlyChangeOrganization(c *gin.Context) {
 		return
 	}
 
-	var requestBody struct {
-		Name             *pgtype.Text `json:"name"`
-		PlasticLimit     *pgtype.Int4 `json:"plastic_limit"`
-		GlassLimit       *pgtype.Int4 `json:"glass_limit"`
-		BiowasteLimit    *pgtype.Int4 `json:"biowaste_limit"`
-		ProducedPlastic  *pgtype.Int4 `json:"produced_plastic"`
-		ProducedGlass    *pgtype.Int4 `json:"produced_glass"`
-		ProducedBiowaste *pgtype.Int4 `json:"produced_biowaste"`
-	}
+	var requestBody OrganizationPartlyUpdate
 	if err := c.BindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body:\n%v", err)})
 		return
@@ -121,21 +113,14 @@ func (handler *Handler) PartlyChangeOrganization(c *gin.Context) {
 }
 
 func (handler *Handler) ChangeOrganization(c *gin.Context) {
+	//TOCHECK: if i can send whole body but still have optional field - so that would be as null values, would they parse and work as expected
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid organization ID"})
 		return
 	}
 
-	var requestBody struct {
-		Name             pgtype.Text `json:"name" binding:"required"`
-		PlasticLimit     pgtype.Int4 `json:"plastic_limit" binding:"required"`
-		GlassLimit       pgtype.Int4 `json:"glass_limit" binding:"required"`
-		BiowasteLimit    pgtype.Int4 `json:"biowaste_limit" binding:"required"`
-		ProducedPlastic  pgtype.Int4 `json:"produced_plastic" binding:"required"`
-		ProducedGlass    pgtype.Int4 `json:"produced_glass" binding:"required"`
-		ProducedBiowaste pgtype.Int4 `json:"produced_biowaste" binding:"required"`
-	}
+	var requestBody OrganizationUpdate
 	if err := c.BindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body:\n%v", err)})
 		return

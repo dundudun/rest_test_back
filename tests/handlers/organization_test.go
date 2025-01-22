@@ -18,7 +18,7 @@ func FuzzCreateOrganization(f *testing.F) {
 
 	//TOCHECK: can Fuzz generate nil?
 	f.Add(63, "test_org_from_fuzzing_1", "100", "200", "10", "20", "200", "0")
-	f.Add(62, "test_org_from_fuzzing_2", "100", "200", "10", "20", "200")
+	f.Add(62, "test_org_from_fuzzing_2", "100", "200", "10", "20", "200", "")
 	//TODO: more cases for f.Add()
 
 	// fieldSet sets what optional fields will be in request body (1 means will be present, 0 - won't)
@@ -65,7 +65,7 @@ func FuzzCreateOrganization(f *testing.F) {
 			//TOCHECK: what is in error -> can i dance around that as not failed test but not ignore completely (i'm interested if in err i will have specific field that caused error)
 		} else if recorder.Code == http.StatusOK {
 			var createdOrganization sqlc.Organization
-			if err = json.Unmarshal(recorder.Body.Bytes(), createdOrganization); err != nil {
+			if err = json.Unmarshal(recorder.Body.Bytes(), &createdOrganization); err != nil {
 				t.Fatalf("INTERNAL TEST FUNCTION FAIL: fail to decode recorder's body from json: %v", err)
 			}
 			//TOCHECK: if encode works as expected (especially what will be in optional fields if db returns nulls)
@@ -90,7 +90,7 @@ func FuzzCreateOrganization(f *testing.F) {
 				t.Fatalf("INTERNAL TEST FUNCTION FAIL: fail to encode created organization to json: %v", err)
 			}
 			if sendBody != string(got) {
-				t.Errorf("send: %v\ngot:\v", sendBody, got)
+				t.Errorf("send: %v\ngot:%v", sendBody, got)
 			}
 			// TOCHECK: what error handler will return if name isn't present in requestBody and move this code to according place (BadRequest should be i guess)
 			// if !createdOrganization.Name.Valid {

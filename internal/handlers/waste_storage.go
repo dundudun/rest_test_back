@@ -6,41 +6,34 @@ import (
 	"strconv"
 
 	"github.com/dundudun/rest_test_back/db/sqlc"
+	"github.com/dundudun/rest_test_back/internal/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func (handler *Handler) CreateWasteStorage(c *gin.Context) {
-	var requestBody struct {
-		Name           pgtype.Text  `json:"name" binding:"required"`
-		PlasticLimit   *pgtype.Int4 `json:"plastic_limit"`
-		GlassLimit     *pgtype.Int4 `json:"glass_limit"`
-		BiowasteLimit  *pgtype.Int4 `json:"biowaste_limit"`
-		StoredPlastic  *pgtype.Int4 `json:"stored_plastic"`
-		StoredGlass    *pgtype.Int4 `json:"stored_glass"`
-		StoredBiowaste *pgtype.Int4 `json:"stored_biowaste"`
-	}
+	var requestBody WasteStorageCreate
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body:\n%v", err)})
 	}
 
 	params := sqlc.CreateWasteStorageParams{
 		Name:           requestBody.Name,
-		PlasticLimit:   *requestBody.PlasticLimit,
-		GlassLimit:     *requestBody.GlassLimit,
-		BiowasteLimit:  *requestBody.BiowasteLimit,
-		StoredPlastic:  *requestBody.StoredPlastic,
-		StoredGlass:    *requestBody.StoredGlass,
-		StoredBiowaste: *requestBody.StoredBiowaste,
+		PlasticLimit:   utils.OptionalInt4(requestBody.PlasticLimit),
+		GlassLimit:     utils.OptionalInt4(requestBody.GlassLimit),
+		BiowasteLimit:  utils.OptionalInt4(requestBody.BiowasteLimit),
+		StoredPlastic:  utils.OptionalInt4(requestBody.StoredPlastic),
+		StoredGlass:    utils.OptionalInt4(requestBody.StoredGlass),
+		StoredBiowaste: utils.OptionalInt4(requestBody.StoredBiowaste),
 	}
-	if err := handler.Queries.CreateWasteStorage(handler.Ctx, params); err != nil {
+	wasteStorage, err := handler.Queries.CreateWasteStorage(handler.Ctx, params)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create waste storage:\n%v", err)})
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, wasteStorage)
 }
 
 func (handler *Handler) GetWasteStorage(c *gin.Context) {
@@ -49,21 +42,21 @@ func (handler *Handler) GetWasteStorage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid waste storage ID:\n%v", err)})
 		return
 	}
-	storage, err := handler.Queries.GetWasteStorage(handler.Ctx, id)
+	wasteStorage, err := handler.Queries.GetWasteStorage(handler.Ctx, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to get waste storage:\n%v", err)})
 		return
 	}
-	c.JSON(http.StatusOK, storage)
+	c.JSON(http.StatusOK, wasteStorage)
 }
 
 func (handler *Handler) ListWasteStorages(c *gin.Context) {
-	storages, err := handler.Queries.ListWasteStorage(handler.Ctx)
+	wasteStorages, err := handler.Queries.ListWasteStorage(handler.Ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to get waste storages:\n%v", err)})
 		return
 	}
-	c.JSON(http.StatusOK, storages)
+	c.JSON(http.StatusOK, wasteStorages)
 }
 
 func (handler *Handler) PartlyChangeWasteStorage(c *gin.Context) {
@@ -73,15 +66,7 @@ func (handler *Handler) PartlyChangeWasteStorage(c *gin.Context) {
 		return
 	}
 
-	var requestBody struct {
-		Name           *pgtype.Text `json:"name"`
-		PlasticLimit   *pgtype.Int4 `json:"plastic_limit"`
-		GlassLimit     *pgtype.Int4 `json:"glass_limit"`
-		BiowasteLimit  *pgtype.Int4 `json:"biowaste_limit"`
-		StoredPlastic  *pgtype.Int4 `json:"stored_plastic"`
-		StoredGlass    *pgtype.Int4 `json:"stored_glass"`
-		StoredBiowaste *pgtype.Int4 `json:"stored_biowaste"`
-	}
+	var requestBody WasteStoragePartlyUpdate
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body:\n%v", err)})
 		return
@@ -89,20 +74,21 @@ func (handler *Handler) PartlyChangeWasteStorage(c *gin.Context) {
 
 	params := sqlc.PartlyUpdateWasteStorageParams{
 		ID:             id,
-		Name:           *requestBody.Name,
-		PlasticLimit:   *requestBody.PlasticLimit,
-		GlassLimit:     *requestBody.GlassLimit,
-		BiowasteLimit:  *requestBody.BiowasteLimit,
-		StoredPlastic:  *requestBody.StoredPlastic,
-		StoredGlass:    *requestBody.StoredGlass,
-		StoredBiowaste: *requestBody.StoredBiowaste,
+		Name:           utils.OptionalText(requestBody.Name),
+		PlasticLimit:   utils.OptionalInt4(requestBody.PlasticLimit),
+		GlassLimit:     utils.OptionalInt4(requestBody.GlassLimit),
+		BiowasteLimit:  utils.OptionalInt4(requestBody.BiowasteLimit),
+		StoredPlastic:  utils.OptionalInt4(requestBody.StoredPlastic),
+		StoredGlass:    utils.OptionalInt4(requestBody.StoredGlass),
+		StoredBiowaste: utils.OptionalInt4(requestBody.StoredBiowaste),
 	}
-	if _, err := handler.Queries.PartlyUpdateWasteStorage(handler.Ctx, params); err != nil {
+	wasteStorage, err := handler.Queries.PartlyUpdateWasteStorage(handler.Ctx, params)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update waste storage"})
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, wasteStorage)
 }
 
 func (handler *Handler) ChangeWasteStorage(c *gin.Context) {
@@ -112,36 +98,29 @@ func (handler *Handler) ChangeWasteStorage(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		Name           pgtype.Text `json:"name" binding:"required"`
-		PlasticLimit   pgtype.Int4 `json:"plastic_limit" binding:"required"`
-		GlassLimit     pgtype.Int4 `json:"glass_limit" binding:"required"`
-		BiowasteLimit  pgtype.Int4 `json:"biowaste_limit" binding:"required"`
-		StoredPlastic  pgtype.Int4 `json:"stored_plastic" binding:"required"`
-		StoredGlass    pgtype.Int4 `json:"stored_glass" binding:"required"`
-		StoredBiowaste pgtype.Int4 `json:"stored_biowaste" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
+	var requestBody WasteStorageUpdate
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body:\n%v", err)})
 		return
 	}
 
 	params := sqlc.UpdateWasteStorageParams{
 		ID:             id,
-		Name:           req.Name,
-		PlasticLimit:   req.PlasticLimit,
-		GlassLimit:     req.GlassLimit,
-		BiowasteLimit:  req.BiowasteLimit,
-		StoredPlastic:  req.StoredPlastic,
-		StoredGlass:    req.StoredGlass,
-		StoredBiowaste: req.StoredBiowaste,
+		Name:           requestBody.Name,
+		PlasticLimit:   requestBody.PlasticLimit,
+		GlassLimit:     requestBody.GlassLimit,
+		BiowasteLimit:  requestBody.BiowasteLimit,
+		StoredPlastic:  requestBody.StoredPlastic,
+		StoredGlass:    requestBody.StoredGlass,
+		StoredBiowaste: requestBody.StoredBiowaste,
 	}
-	if err := handler.Queries.UpdateWasteStorage(handler.Ctx, params); err != nil {
+	wasteStorage, err := handler.Queries.UpdateWasteStorage(handler.Ctx, params)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to update waste storage:\n%v", err)})
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, wasteStorage)
 }
 
 func (handler *Handler) DeleteWasteStorage(c *gin.Context) {
