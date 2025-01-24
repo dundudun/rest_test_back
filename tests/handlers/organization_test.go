@@ -48,6 +48,7 @@ func FuzzCreateOrganization(f *testing.F) {
 		}
 		sendBody += `}`
 
+		gin.SetMode(gin.TestMode)
 		router := gin.Default()
 		router.POST("/api/organizations", handler.CreateOrganization)
 
@@ -63,7 +64,7 @@ func FuzzCreateOrganization(f *testing.F) {
 			t.Error("fail to create organization")
 		} else if recorder.Code == http.StatusBadRequest {
 			//TOCHECK: what is in error -> can i dance around that as not failed test but not ignore completely (i'm interested if in err i will have specific field that caused error)
-		} else if recorder.Code == http.StatusOK {
+		} else if recorder.Code == http.StatusCreated {
 			var createdOrganization sqlc.Organization
 			if err = json.Unmarshal(recorder.Body.Bytes(), &createdOrganization); err != nil {
 				t.Fatalf("INTERNAL TEST FUNCTION FAIL: fail to decode recorder's body from json: %v", err)
@@ -98,4 +99,56 @@ func FuzzCreateOrganization(f *testing.F) {
 			// }
 		}
 	})
+}
+
+func TestGetOrganization(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.Default()
+	router.GET("/api/organizations/:id", handler.GetOrganization)
+
+	recorder := httptest.NewRecorder()
+	newRequest, err := http.NewRequest("GET", "/api/organizations/"+id, nil)
+	if err != nil {
+		t.Fatalf("INTERNAL TEST FUNCTION FAIL: fail to create NewRequest: %v", err)
+	}
+	router.ServeHTTP(recorder, newRequest)
+
+	if recorder.Code == http.StatusInternalServerError { // if == http.InternalError in case i won't find the way to dance around bad json load
+		t.Error("fail to get the organization")
+	} else if recorder.Code == http.StatusBadRequest { // && substring(recorder.Body.Bytes(), "invalid organization ID") == trues
+
+	} else if recorder.Code == http.StatusOK {
+		var returnedOrganization sqlc.Organization
+		if err = json.Unmarshal(recorder.Body.Bytes(), &returnedOrganization); err != nil {
+			t.Fatalf("INTERNAL TEST FUNCTION FAIL: fail to decode recorder's body from json: %v", err)
+		}
+		//TOCHECK: if encode works as expected (especially what will be in optional fields if db returns nulls)
+		got, err := json.Marshal(struct {
+			Name             pgtype.Text `json:"name"`
+			PlasticLimit     pgtype.Int4 `json:"plastic_limit,omitempty"`
+			GlassLimit       pgtype.Int4 `json:"glass_limit,omitempty"`
+			BiowasteLimit    pgtype.Int4 `json:"biowaste_limit,omitempty"`
+			ProducedPlastic  pgtype.Int4 `json:"produced_plastic,omitempty"`
+			ProducedGlass    pgtype.Int4 `json:"produced_glass,omitempty"`
+			ProducedBiowaste pgtype.Int4 `json:"produced_biowaste,omitempty"`
+		}{
+			returnedOrganization.Name,
+			returnedOrganization.PlasticLimit,
+			returnedOrganization.GlassLimit,
+			returnedOrganization.BiowasteLimit,
+			returnedOrganization.ProducedPlastic,
+			returnedOrganization.ProducedGlass,
+			returnedOrganization.ProducedBiowaste,
+		})
+		if err != nil {
+			t.Fatalf("INTERNAL TEST FUNCTION FAIL: fail to encode created organization to json: %v", err)
+		}
+		if sendBody != string(got) {
+			t.Errorf("send: %v\ngot:%v", sendBody, got)
+		}
+		// TOCHECK: what error handler will return if name isn't present in requestBody and move this code to according place (BadRequest should be i guess)
+		// if !createdOrganization.Name.Valid {
+		// 	t.Error("organization's name is required and can't be null")
+		// }
+	}
 }

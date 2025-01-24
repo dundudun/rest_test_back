@@ -38,7 +38,7 @@ func (handler *Handler) CreateOrganization(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, organization)
+	c.JSON(http.StatusCreated, organization)
 }
 
 func (handler *Handler) GetOrganization(c *gin.Context) {

@@ -33,7 +33,7 @@ func (handler *Handler) CreateWasteStorage(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, wasteStorage)
+	c.JSON(http.StatusCreated, wasteStorage)
 }
 
 func (handler *Handler) GetWasteStorage(c *gin.Context) {
